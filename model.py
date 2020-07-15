@@ -24,6 +24,11 @@ def initial_population():
     s_initial = 1 - e_initial - i_initial - r_initial
     return s_initial, e_initial, i_initial, r_initial
 
+def simulate_infection(derivative_function, initial_population, times, social_distance_effectivess, alpha, beta, gamma):
+    with_distancing = odeint(derivative_function, initial_population, times, args=(social_distance_effectivess, alpha, beta, gamma)).T
+    without_distancing = odeint(derivative_function, initial_population, times, args=(0, alpha, beta, gamma)).T
+    return with_distancing, without_distancing
+
 alpha = 1/t_incubation
 gamma = 1/t_infective
 beta = R0*gamma
@@ -39,8 +44,8 @@ def deriv(x, t, u, alpha, beta, gamma):
 
 t = np.linspace(0, 210, 210)
 x_initial = initial_population()
-s, e, i, r = odeint(deriv, x_initial, t, args=(u_social_distancing, alpha, beta, gamma)).T
-s0, e0, i0, r0 = odeint(deriv, x_initial, t, args=(0, alpha, beta, gamma)).T
+
+((s, e, i, r), (s0, e0, i0, r0)) = simulate_infection(deriv, x_initial, t, u_social_distancing, alpha, beta, gamma)
 
 # plot the data
 fig = plt.figure(figsize=(12, 10))
