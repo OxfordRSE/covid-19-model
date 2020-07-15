@@ -8,33 +8,52 @@ from scipy.integrate import odeint
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-R0 = 2.4
-t_incubation = 5.1
-t_infective = 3.3
-N = 14000
-n = 10
-t_social_distancing = 2
-u_social_distancing = 40
-alpha = 1/t_incubation
-gamma = 1/t_infective
-beta = R0*gamma
-t = np.linspace(0, 210, 210)
+def simulation_parameters():
+    N = 14000
+    n = 10
+    t_incubation = 5.1
+    t_infective = 3.3
+    t_social_distancing = 2
+    u_social_distancing = 40
+    R0 = 2.4
+    alpha = 1/t_incubation
+    gamma = 1/t_infective
+    beta = R0*gamma
+    t = np.linspace(0, 210, 210)
+    return {
+        'R0': R0,
+        'alpha': alpha,
+        'beta': beta,
+        'gamma': gamma,
+        't': t,
+        't_social_distancing': t_social_distancing,
+        'u_social_distancing': u_social_distancing,
+        'N': N,
+        'n': n,
+    }
 
-def initial_population():
+def initial_population(parameters):
     """initial number of infected and recovered individuals"""
-    e_initial = n/N
+    e_initial = parameters['n']/parameters['N']
     i_initial = 0.00
     r_initial = 0.00
     s_initial = 1 - e_initial - i_initial - r_initial
     return s_initial, e_initial, i_initial, r_initial
 
-def simulate_infection(derivative_function, initial_population, times, social_distance_effectivess, alpha, beta, gamma):
-    with_distancing = odeint(derivative_function, initial_population, times, args=(social_distance_effectivess, alpha, beta, gamma)).T
-    without_distancing = odeint(derivative_function, initial_population, times, args=(0, alpha, beta, gamma)).T
+def simulate_infection(derivative_function, initial_population, parameters):
+    times = parameters['t']
+    zero_social_distance_params = dict(parameters)
+    zero_social_distance_params['u_social_distancing'] = 0
+    with_distancing = odeint(derivative_function, initial_population, times, args=(parameters,)).T
+    without_distancing = odeint(derivative_function, initial_population, times, args=(zero_social_distance_params,)).T
     return with_distancing, without_distancing
 
-def plot_infection_rates(t, with_distancing, without_distancing):
+def plot_infection_rates(parameters, with_distancing, without_distancing):
     # plot the data
+    N = parameters['N']
+    t = parameters['t']
+    u_social_distancing = parameters['u_social_distancing']
+
     fig = plt.figure(figsize=(12, 10))
     ax = [fig.add_subplot(311, axisbelow=True), 
         fig.add_subplot(312)]
@@ -52,6 +71,9 @@ def plot_infection_rates(t, with_distancing, without_distancing):
         'Infectious/symptomatic',
         'Recovered'], 
         loc='best')
+
+    t_social_distancing = parameters['t_social_distancing']
+    R0 = parameters['R0']
     ax[0].plot(np.array([t_social_distancing, t_social_distancing]), ax[0].get_ylim(), 'r', lw=3)
     ax[0].plot(np.array([0, t[-1]])/7, [N/R0, N/R0], lw=3, label='herd immunity')
     ax[0].annotate("Start of social distancing",
@@ -95,15 +117,21 @@ def save_png(plt, filename):
     plt.savefig(filename)
 
 # SEIR model differential equations.
-def deriv(x, t, u, alpha, beta, gamma):
+def deriv(x, t, params):
     s, e, i, r = x
+    u = params['u_social_distancing']
+    t_social_distancing = params['t_social_distancing']
+    beta = params['beta']
+    alpha = params['alpha']
+    gamma = params['gamma']
     dsdt = -(1-u*(1 if t >= 7*t_social_distancing else 0)/100)*beta * s * i
     dedt =  (1-u*(1 if t >= 7*t_social_distancing else 0)/100)*beta * s * i - alpha * e
     didt = alpha * e - gamma * i
     drdt =  gamma * i
     return [dsdt, dedt, didt, drdt]
 
-x_initial = initial_population()
-(with_distancing, without_distancing) = simulate_infection(deriv, x_initial, t, u_social_distancing, alpha, beta, gamma)
-figure = plot_infection_rates(t, with_distancing, without_distancing)
+parameters = simulation_parameters()
+x_initial = initial_population(parameters)
+(with_distancing, without_distancing) = simulate_infection(deriv, x_initial, parameters)
+figure = plot_infection_rates(parameters, with_distancing, without_distancing)
 save_png(figure, 'covid-19')
