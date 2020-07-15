@@ -16,11 +16,13 @@ from scipy.integrate import odeint
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# initial number of infected and recovered individuals
-e_initial = n/N
-i_initial = 0.00
-r_initial = 0.00
-s_initial = 1 - e_initial - i_initial - r_initial
+def initial_population():
+    """initial number of infected and recovered individuals"""
+    e_initial = n/N
+    i_initial = 0.00
+    r_initial = 0.00
+    s_initial = 1 - e_initial - i_initial - r_initial
+    return s_initial, e_initial, i_initial, r_initial
 
 alpha = 1/t_incubation
 gamma = 1/t_infective
@@ -36,7 +38,7 @@ def deriv(x, t, u, alpha, beta, gamma):
     return [dsdt, dedt, didt, drdt]
 
 t = np.linspace(0, 210, 210)
-x_initial = s_initial, e_initial, i_initial, r_initial
+x_initial = initial_population()
 s, e, i, r = odeint(deriv, x_initial, t, args=(u_social_distancing, alpha, beta, gamma)).T
 s0, e0, i0, r0 = odeint(deriv, x_initial, t, args=(0, alpha, beta, gamma)).T
 
