@@ -117,6 +117,9 @@ def save_png(plt, filename):
     plt.savefig(filename)
 
 # SEIR model differential equations.
+def susceptible_population_gradient(social_distancing_effectiveness, t, t_social_distancing_start, beta, susceptible, infected):
+    return -(1-social_distancing_effectiveness*(1 if t >= 7 * t_social_distancing_start else 0)/100)*beta * susceptible * infected
+
 def deriv(x, t, params):
     s, e, i, r = x
     u = params['u_social_distancing']
@@ -124,8 +127,8 @@ def deriv(x, t, params):
     beta = params['beta']
     alpha = params['alpha']
     gamma = params['gamma']
-    dsdt = -(1-u*(1 if t >= 7*t_social_distancing else 0)/100)*beta * s * i
-    dedt =  (1-u*(1 if t >= 7*t_social_distancing else 0)/100)*beta * s * i - alpha * e
+    dsdt = susceptible_population_gradient(u, t, t_social_distancing, beta, s, i)
+    dedt =  -1 * susceptible_population_gradient(u, t, t_social_distancing, beta, s, i) - alpha * e
     didt = alpha * e - gamma * i
     drdt =  gamma * i
     return [dsdt, dedt, didt, drdt]
