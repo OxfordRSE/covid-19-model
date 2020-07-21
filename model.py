@@ -40,12 +40,15 @@ def initial_population(parameters):
     s_initial = 1 - e_initial - i_initial - r_initial
     return s_initial, e_initial, i_initial, r_initial
 
+def evolve_simulation_over_time(derivative_function, initial_population, times, parameters):
+    return odeint(derivative_function, initial_population, times, args=(parameters,)).T
+
 def simulate_infection(derivative_function, initial_population, parameters):
     times = parameters['t']
     zero_social_distance_params = dict(parameters)
     zero_social_distance_params['u_social_distancing'] = 0
-    with_distancing = odeint(derivative_function, initial_population, times, args=(parameters,)).T
-    without_distancing = odeint(derivative_function, initial_population, times, args=(zero_social_distance_params,)).T
+    with_distancing = evolve_simulation_over_time(derivative_function, initial_population, times, parameters)
+    without_distancing = evolve_simulation_over_time(derivative_function, initial_population, times, zero_social_distance_params)
     return with_distancing, without_distancing
 
 def plot_infection_rates(parameters, with_distancing, without_distancing):
