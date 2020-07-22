@@ -15,15 +15,24 @@ def deriv(x, t, params):
     drdt =  infected_becoming_recovered
     return [dsdt, dedt, didt, drdt]
 
+def initial_population(parameters):
+    """initial number of infected and recovered individuals"""
+    e_initial = parameters['n']/parameters['N']
+    i_initial = 0.00
+    r_initial = 0.00
+    s_initial = 1 - e_initial - i_initial - r_initial
+    return s_initial, e_initial, i_initial, r_initial
+
 def evolve_simulation_over_time(derivative_function, initial_population, times, parameters):
     return odeint(derivative_function, initial_population, times, args=(parameters,)).T
 
-def simulate_infection(initial_population, parameters):
+def simulate_infection(parameters):
+    pop_0 = initial_population(parameters)
     times = parameters['t']
     zero_social_distance_params = dict(parameters)
     zero_social_distance_params['u_social_distancing'] = 0
-    with_distancing = evolve_simulation_over_time(deriv, initial_population, times, parameters)
-    without_distancing = evolve_simulation_over_time(deriv, initial_population, times, zero_social_distance_params)
+    with_distancing = evolve_simulation_over_time(deriv, pop_0, times, parameters)
+    without_distancing = evolve_simulation_over_time(deriv, pop_0, times, zero_social_distance_params)
     return with_distancing, without_distancing
 
 # SEIR model differential equations.
